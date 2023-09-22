@@ -7,6 +7,9 @@ public class PercolationStats {
 
     // perform independent trials on an n-by-n grid
     public PercolationStats(final int n, int trials) {
+        if(trials < 1 || n < 1) {
+            throw new IllegalArgumentException();
+        }
         this.n = n;
         outcomes = new double[trials];
 
@@ -18,7 +21,7 @@ public class PercolationStats {
                 openCell(percolator);
             }
 
-            this.outcomes[i] = (1.0d * percolationTreshold) / (n * n);
+            this.outcomes[i] = (double) percolationTreshold / (n * n);
         }
     }
 
@@ -58,11 +61,10 @@ public class PercolationStats {
 
     // test client (see below)
     public static void main(String[] args) {
-        var pstats = new PercolationStats(200, 100);
-        System.out.println(pstats.mean());
-        System.out.println(pstats.stddev());
-        System.out.println(pstats.confidenceLo());
-        System.out.println(pstats.confidenceHi());
+        var pstats = new PercolationStats(Integer.parseInt(args[0]), Integer.parseInt(args[1]));
+        System.out.println("mean = " + pstats.mean());
+        System.out.println("stddev = " + pstats.stddev());
+        System.out.println("95% confidence interval = [" + pstats.confidenceLo() + ", " + pstats.confidenceHi() + "]");
     }
 
     private RowCol indexToRowCol(int n, int i) {

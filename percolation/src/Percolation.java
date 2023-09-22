@@ -6,8 +6,9 @@ public class Percolation {
     private int numberOfOpenSites = 0;
     private final int topVirtualNode;
     private final int bottomVirtualNode;
-    private final WeightedQuickUnionUF qu;
-    private final int[] openClosed;
+    private final WeightedQuickUnionUF fullSet;
+    private final WeightedQuickUnionUF topOnlySet;
+    private final boolean[] openClosed;
 
     public Percolation(int n) {
         if (n <= 0) {
@@ -15,17 +16,19 @@ public class Percolation {
         }
         this.n = n;
         int gridSize = n * n + 2; // +2 for virtual nodes
-        this.openClosed = new int[gridSize];
+        this.openClosed = new boolean[gridSize];
         this.topVirtualNode = gridSize - 2;
         this.bottomVirtualNode = gridSize - 1;
 
-        qu = new WeightedQuickUnionUF(gridSize);
+        this.fullSet = new WeightedQuickUnionUF(gridSize);
+        this.topOnlySet = new WeightedQuickUnionUF(gridSize-1);
         for (int i = 0; i < n; i++) {
             var j = rowColToIndex(1, i + 1);
-            qu.union(j, this.topVirtualNode);
+            this.fullSet.union(j, this.topVirtualNode);
+            this.topOnlySet.union(j, this.topVirtualNode);
 
             var k = rowColToIndex(n, i + 1);
-            qu.union(k, this.bottomVirtualNode);
+            this.fullSet.union(k, this.bottomVirtualNode);
         }
     }
 
@@ -35,7 +38,7 @@ public class Percolation {
             return;
 
         var i = this.rowColToIndex(row, col);
-        this.openClosed[i] = 1;
+        this.openClosed[i] = true;
         this.numberOfOpenSites++;
 
         if (row > 1) {
@@ -62,19 +65,20 @@ public class Percolation {
     private void unionIfOpen(int row, int above, int i) {
         if (isOpen(row, above)) {
             int neighborIndex = this.rowColToIndex(row, above);
-            this.qu.union(neighborIndex, i);
+            this.fullSet.union(neighborIndex, i);
+            this.topOnlySet.union(neighborIndex, i);
         }
     }
 
 
     public boolean isOpen(int row, int col) {
-        return this.openClosed[this.rowColToIndex(row, col)] > 0;
+        return this.openClosed[this.rowColToIndex(row, col)];
     }
 
     public boolean isFull(int row, int col) {
         var i = this.rowColToIndex(row, col);
 
-        return isOpen(row, col) && qu.find(i) == qu.find(this.topVirtualNode);
+        return isOpen(row, col) && topOnlySet.find(i) == topOnlySet.find(this.topVirtualNode);
     }
 
     public int numberOfOpenSites() {
@@ -82,7 +86,9 @@ public class Percolation {
     }
 
     public boolean percolates() {
-        return qu.find(this.bottomVirtualNode) == qu.find(this.topVirtualNode);
+        boolean nIsOneGuard = numberOfOpenSites() > 0;
+        boolean connected = fullSet.find(this.bottomVirtualNode) == fullSet.find(this.topVirtualNode);
+        return nIsOneGuard && connected;
     }
 
     private int rowColToIndex(int row, int col) {
@@ -93,8 +99,8 @@ public class Percolation {
         return this.n * row + col;
     }
 
-    private void checkBounds(int rowOrCol){
-        if(rowOrCol < 1 || rowOrCol > n) {
+    private void checkBounds(int rowOrCol) {
+        if (rowOrCol < 1 || rowOrCol > n) {
             throw new IllegalArgumentException();
         }
     }
